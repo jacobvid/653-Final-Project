@@ -1,0 +1,55 @@
+---
+title: "653 Final Project"
+author: "Jacob Vidergar, William-Tackett"
+date: r.sys.Date()
+output: pdf_document
+---
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(RColorBrewer)
+data <- read.csv("all_seasons.csv")
+data <- data %>% select(-X)
+head(data)
+```
+
+```{r}
+# Create a new draft_round category combining 0 and Undrafted
+data <- data %>%
+    mutate(draft_round_combined = case_when(
+        draft_round == 0 ~ "Undrafted", 
+        draft_round == "Undrafted" ~ "Undrafted", 
+        draft_round %in% c(1, 2) ~ as.character(draft_round),
+        TRUE ~ NA_character_))
+
+# Filter to keep only the combined category, 1, and 2
+filtered_data <- data %>%
+    filter(draft_round_combined %in% c("Undrafted", "1", "2"))
+
+# Average `ts_pct` by the new combined draft_round category and season
+draft_round_ts_pct_combined <- filtered_data %>%
+    group_by(draft_round_combined, season) %>%
+    summarize(avg_ts_pct = mean(ts_pct, na.rm = TRUE))
+
+# Ensure `season` is treated as a factor with the correct order
+draft_round_ts_pct_combined$season <- factor(draft_round_ts_pct_combined$season, levels = sort(unique(draft_round_ts_pct_combined$season)))
+```
+
+```{r}
+# Plot `ts_pct` over time by the combined draft_round category
+ggplot(draft_round_ts_pct_combined, aes(x = season, y = avg_ts_pct, color = draft_round_combined, group = draft_round_combined)) +
+  geom_line() +
+  labs(
+    title = "Average TS% Over Time by Draft Round (Combined)",
+    x = "Season",
+    y = "Average TS%",
+    color = "Draft Round") + # Set the title of the legend 
+    scale_color_brewer(palette = "Set1") +  # Use "Set1" for three distinct colors
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for better readability
+
+```
+
+
+
