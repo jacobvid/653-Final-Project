@@ -1,0 +1,110 @@
+---
+title: "653 Final Project"
+author: "Jacob Vidergar"
+date: "2024-11-05"
+output: pdf_document
+---
+
+```{r}
+library(dplyr)
+library(ggplot2)
+data <- read.csv("all_seasons.csv")
+head(data)
+```
+
+```{r}
+# Average `ts_pct` by team and season
+team_ts_pct <- data %>%
+    group_by(team_abbreviation, season) %>%
+    summarize(avg_ts_pct = mean(ts_pct, na.rm = TRUE))
+
+# Ensure `season` is treated as a factor with the correct order
+team_ts_pct$season <- factor(team_ts_pct$season, levels = sort(unique(team_ts_pct$season)))
+
+# Plot `ts_pct` over time by team
+ggplot(team_ts_pct, aes(x = season, y = avg_ts_pct, color = team_abbreviation, group = team_abbreviation)) +
+    geom_line() +
+    labs(title = "Average TS% Over Time by Team", x = "Season", y = "Average TS%") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for better readability
+
+```
+
+```{r}
+# Get the number of unique values in the 'college' column
+num_unique_colleges <- length(unique(data$college))
+
+# Print the result
+cat("Number of Unique Colleges:", num_unique_colleges, "\n")
+```
+
+
+```{r}
+# Count the number of observations for each college
+college_counts <- data %>%
+  count(college) %>%
+  arrange(desc(n))
+
+# Get the top 10 colleges by number of observations
+top_10_colleges <- college_counts$college[1:10]
+
+# Filter the original dataset for these top 10 colleges
+filtered_data <- data %>%
+  filter(college %in% top_10_colleges)
+
+# Plot the `ts_pct` over time for the top 10 colleges
+ggplot(filtered_data, aes(x = season, y = ts_pct, color = college, group = college)) +
+  geom_line() +
+  labs(title = "TS% Over Time for Top 10 Colleges", x = "Season", y = "TS%") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for better readability
+
+```
+
+
+```{r}
+# Aggregate the data to get the average `ts_pct` for each college and season
+aggregated_data <- filtered_data %>%
+  group_by(college, season) %>%
+  summarize(avg_ts_pct = mean(ts_pct, na.rm = TRUE))
+
+# Plot the aggregated data
+ggplot(aggregated_data, aes(x = season, y = avg_ts_pct, color = college, group = college)) +
+  geom_line() +
+  labs(title = "TS% Over Time for Top 10 Colleges", x = "Season", y = "TS%") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for better readability
+
+```
+
+```{r}
+# Create a new draft_round category combining 0 and Undrafted
+data <- data %>%
+    mutate(draft_round_combined = case_when(
+        draft_round == 0 ~ "Undrafted", 
+        draft_round == "Undrafted" ~ "Undrafted", 
+        draft_round %in% c(1, 2) ~ as.character(draft_round),
+        TRUE ~ NA_character_))
+
+# Filter to keep only the combined category, 1, and 2
+filtered_data <- data %>%
+    filter(draft_round_combined %in% c("Undrafted", "1", "2"))
+
+# Average `ts_pct` by the new combined draft_round category and season
+draft_round_ts_pct_combined <- filtered_data %>%
+    group_by(draft_round_combined, season) %>%
+    summarize(avg_ts_pct = mean(ts_pct, na.rm = TRUE))
+
+# Ensure `season` is treated as a factor with the correct order
+draft_round_ts_pct_combined$season <- factor(draft_round_ts_pct_combined$season, levels = sort(unique(draft_round_ts_pct_combined$season)))
+
+# Plot `ts_pct` over time by the combined draft_round category
+ggplot(draft_round_ts_pct_combined, aes(x = season, y = avg_ts_pct, color = draft_round_combined, group = draft_round_combined)) +
+    geom_line() +
+    labs(title = "Average TS% Over Time by Draft Round (Combined)", x = "Season", y = "Average TS%") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for better readability
+
+
+```
+
